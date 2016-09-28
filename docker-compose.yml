@@ -27,9 +27,9 @@ primarygo:
     - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase
 
   volumes:
-    - dependencies/postgresqldb.properties:/etc/go/postgresqldb.properties
-    - dependencies/addons:/go-addons
-    - dependencies/go-primary/init.sh:/init.sh
+    - ./dependencies/postgresqldb.properties:/etc/go/postgresqldb.properties
+    - ./dependencies/addons:/go-addons
+    - ./dependencies/go-primary/init.sh:/init.sh
 
   ports:
     - "8153"
@@ -60,9 +60,9 @@ secondarygo:
     - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -Dgo.server.mode=standby -Dbc.primary.url=https://primarygo:8154
 
   volumes:
-    - dependencies/postgresqldb.properties:/etc/go/postgresqldb.properties
-    - dependencies/addons:/go-addons
-    - dependencies/go-secondary/init.sh:/init.sh
+    - ./dependencies/postgresqldb.properties:/etc/go/postgresqldb.properties
+    - ./dependencies/addons:/go-addons
+    - ./dependencies/go-secondary/init.sh:/init.sh
 
   ports:
     - "8153"
