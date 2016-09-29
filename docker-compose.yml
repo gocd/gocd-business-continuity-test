@@ -1,0 +1,78 @@
+# Shared drive for ... sharing files.
+share:
+  image: cogniteev/echo
+  volumes:
+    - /share
+
+# DB for primary Go Server
+primarydb:
+  build: dependencies/pg-primary-with-replication
+
+  volumes_from:
+    - share
+
+  environment:
+    - POSTGRES_USER=go
+    - POSTGRES_PASSWORD=password1
+
+# Primary Go Server
+primarygo:
+  # Build this image using https://hub.docker.com/r/gocd/gocd-server/, with the right commit that you need for testing.
+  image: gocd-server-for-bc-test
+
+  links:
+    - primarydb:db
+
+  environment:
+    - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase
+
+  volumes:
+    - ./dependencies/postgresqldb.properties:/etc/go/postgresqldb.properties
+    - ./dependencies/addons:/go-addons
+    - ./dependencies/go-primary/init.sh:/init.sh
+
+  ports:
+    - "8153"
+    - "8154"
+
+  privileged: true
+
+# DB for secondary Go Server
+secondarydb:
+  build: dependencies/pg-standby
+
+  links:
+    - primarydb
+
+  volumes_from:
+    - share
+
+# Secondary Go Server
+secondarygo:
+  # Build this image using https://hub.docker.com/r/gocd/gocd-server/, with the right commit that you need for testing.
+  image: gocd-server-for-bc-test
+
+  links:
+    - secondarydb:db
+    - primarygo:primarygo
+
+  environment:
+    - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -Dgo.server.mode=standby -Dbc.primary.url=https://primarygo:8154
+
+  volumes:
+    - ./dependencies/postgresqldb.properties:/etc/go/postgresqldb.properties
+    - ./dependencies/addons:/go-addons
+    - ./dependencies/go-secondary/init.sh:/init.sh
+
+  ports:
+    - "8153"
+    - "8154"
+
+  privileged: true
+
+# A Go Agent, setup to use the virtual IP (172.17.17.17). You need to setup this up manually.
+agent1:
+  image: gocd/gocd-agent
+
+  environment:
+    - GO_SERVER=172.17.17.17
