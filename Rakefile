@@ -11,6 +11,8 @@ include Test::Unit::Assertions
 GO_VERSION = ENV['GO_VERSION'] || (raise 'please provide the GO_VERSION environment variable')
 IMAGE_PARAMS = { server: { path: File.expand_path('../gocd-docker/phusion/server'), tag: 'gocd-server-for-bc-test' },
                  agent: { path: File.expand_path('../gocd-docker/phusion/agent'), tag: 'gocd-agent' } }.freeze
+LAST_SYNC_TIME = nil
+PIPELINE_NAME = 'testpipeline'.freeze
 @urls=nil
 Docker.url='unix:///var/run/docker.sock'
 
@@ -93,11 +95,48 @@ task :verify_sync do
     assert response.code == 200
     break if sync_successful?(JSON.parse(response.body,:symbolize_names => true))
   end
+  response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json")
+  if LAST_SYNC_TIME.nil?
+    LAST_SYNC_TIME = JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
+  else
+    assert LAST_SYNC_TIME < JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
+  end
+
   puts "Sync successfull"
 end
 
+desc 'Create a pipeline on primary and wait for it to pass and then verify sync is successfull'
+task :update_primary_state do
+
+  url = "#{@urls['primarygo'][:site_url]}/api/admin/pipelines"
+  sh(%Q{curl -sL -w "%{http_code}" -X POST  -H "Accept: application/vnd.go.cd.v3+json" -H "Content-Type: application/json" --data "@pipeline.json" #{url} -o /dev/null})
+  url = "#{@urls['primarygo'][:site_url]}/api/pipelines/#{PIPELINE_NAME}/unpause"
+  sh(%Q{curl -sL -w "%{http_code}" -X POST  -H "Accept:application/vnd.go.cd.v1+text" -H "CONFIRM:true" #{url} -o /dev/null})
+  url = "#{@urls['primarygo'][:site_url]}/api/pipelines/#{PIPELINE_NAME}/schedule"
+  sh(%Q{curl -sL -w "%{http_code}" -X POST -H "Accept:application/vnd.go.cd.v1+text" -H "CONFIRM:true" #{url} -o /dev/null})
+  check_pipeline_status
+end
+
 def sync_successful? (response)
-  response[:primaryServerDetails].select{|key,value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 7
+  (response[:primaryServerDetails].select{|key,value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 7) && (response[:oauthSetupStatus] == 'success') && (response[:syncErrors].empty?)
+end
+
+def check_pipeline_status
+  begin
+    Timeout.timeout(180) do
+      while(true) do
+        sleep 5
+        runs = JSON.parse(open("#{@urls['primarygo'][:site_url]}/api/dashboard",'Accept' => 'application/vnd.go.cd.v1+json').read)
+
+        if runs["_embedded"]["pipeline_groups"][0]["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]  == 'Passed'
+          puts 'Pipeline completed with success'
+          break
+        end
+      end
+    end
+  rescue Timeout::Error => e
+    raise 'Pipeline was not built successfully'
+  end
 end
 
 
@@ -135,4 +174,4 @@ def ping(url)
   RestClient.get("#{url}")
 end
 
-task default: [:clean, :init, :compose, :verify_setup, :setup_oauth_client, :verify_sync]
+task default: [:clean, :init, :compose, :verify_setup, :setup_oauth_client, :verify_sync, :update_primary_state, :verify_sync]
