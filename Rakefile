@@ -1,3 +1,19 @@
+##########################################################################
+# Copyright 2016 ThoughtWorks, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##########################################################################
+
 require 'Docker'
 require 'rest-client'
 require 'pry'
@@ -5,14 +21,16 @@ require 'Json'
 require 'Nokogiri'
 require 'test/unit'
 require 'open-uri'
+require_relative 'lib/helpers.rb'
 
 include Test::Unit::Assertions
 
 GO_VERSION = ENV['GO_VERSION'] || (raise 'please provide the GO_VERSION environment variable')
 IMAGE_PARAMS = { server: { path: File.expand_path('../gocd-docker/phusion/server'), tag: 'gocd-server-for-bc-test' },
                  agent: { path: File.expand_path('../gocd-docker/phusion/agent'), tag: 'gocd-agent' } }.freeze
-LAST_SYNC_TIME = nil
 PIPELINE_NAME = 'testpipeline'.freeze
+
+@last_sync_time = nil
 @urls=nil
 Docker.url='unix:///var/run/docker.sock'
 
@@ -40,7 +58,6 @@ desc 'docker compose'
 task :compose do
   sh('docker-compose up -d')
 end
-
 
 desc 'verify agent registered to server'
 task :verify_setup do
@@ -89,25 +106,15 @@ desc 'setup oAuth and verify sync on secondary server'
 task :verify_sync do
   response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/setup")
   assert response.code == 200
-
-  wait_till_event_occurs_or_bomb 120, "Sync Failed" do
+  if synced?
     response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json")
-    assert response.code == 200
-    break if sync_successful?(JSON.parse(response.body,:symbolize_names => true))
+    @last_sync_time = JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
   end
-  response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json")
-  if LAST_SYNC_TIME.nil?
-    LAST_SYNC_TIME = JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
-  else
-    assert LAST_SYNC_TIME < JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
-  end
-
-  puts "Sync successfull"
+  puts "Initial Sync successfull"
 end
 
 desc 'Create a pipeline on primary and wait for it to pass and then verify sync is successfull'
 task :update_primary_state do
-
   url = "#{@urls['primarygo'][:site_url]}/api/admin/pipelines"
   sh(%Q{curl -sL -w "%{http_code}" -X POST  -H "Accept: application/vnd.go.cd.v3+json" -H "Content-Type: application/json" --data "@pipeline.json" #{url} -o /dev/null})
   url = "#{@urls['primarygo'][:site_url]}/api/pipelines/#{PIPELINE_NAME}/unpause"
@@ -117,61 +124,13 @@ task :update_primary_state do
   check_pipeline_status
 end
 
-def sync_successful? (response)
-  (response[:primaryServerDetails].select{|key,value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 7) && (response[:oauthSetupStatus] == 'success') && (response[:syncErrors].empty?)
-end
-
-def check_pipeline_status
-  begin
-    Timeout.timeout(180) do
-      while(true) do
-        sleep 5
-        runs = JSON.parse(open("#{@urls['primarygo'][:site_url]}/api/dashboard",'Accept' => 'application/vnd.go.cd.v1+json').read)
-
-        if runs["_embedded"]["pipeline_groups"][0]["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]  == 'Passed'
-          puts 'Pipeline completed with success'
-          break
-        end
-      end
-    end
-  rescue Timeout::Error => e
-    raise 'Pipeline was not built successfully'
+desc 'verify sync on secondary server after an update on primary server - Check for timestamp'
+task :verify_sync_with_timestamp do
+  if synced?
+    response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json")
+    assert @last_sync_time < JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
   end
+  puts "Sync after primary server changes successfull"
 end
 
-
-def wait_to_start(url)
-  wait_till_event_occurs_or_bomb 120, "Connect to : #{url}" do
-      begin
-        break if running?(url)
-      rescue Errno::ECONNREFUSED
-        sleep 5
-      end
-    end
-end
-
-def wait_till_event_occurs_or_bomb(wait_time, message)
-      Timeout.timeout(wait_time) do
-        loop do
-          yield if block_given?
-          sleep 0.1
-        end
-      end
-    rescue Timeout::Error
-      raise "The event did not occur - #{message}. Wait timed out"
-end
-
-
-def running?(url)
-  begin
-    ping(url).code == 200
-  rescue => e
-    false
-  end
-end
-
-def ping(url)
-  RestClient.get("#{url}")
-end
-
-task default: [:clean, :init, :compose, :verify_setup, :setup_oauth_client, :verify_sync, :update_primary_state, :verify_sync]
+task default: [:clean, :init, :compose, :verify_setup, :setup_oauth_client, :verify_sync, :update_primary_state, :verify_sync_with_timestamp]
