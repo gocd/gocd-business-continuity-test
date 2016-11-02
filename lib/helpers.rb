@@ -55,7 +55,7 @@ end
 
 
 def wait_to_start(url)
-  wait_till_event_occurs_or_bomb 120, "Connect to : #{url}" do
+  wait_till_event_occurs_or_bomb 180, "Connect to : #{url}" do
       begin
         break if running?(url)
       rescue Errno::ECONNREFUSED
@@ -68,7 +68,7 @@ def wait_till_event_occurs_or_bomb(wait_time, message)
       Timeout.timeout(wait_time) do
         loop do
           yield if block_given?
-          sleep 0.1
+          sleep 5
         end
       end
     rescue Timeout::Error

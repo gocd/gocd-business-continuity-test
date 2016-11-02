@@ -14,18 +14,18 @@
 # limitations under the License.
 ##########################################################################
 
-require 'Docker'
+require 'docker'
 require 'rest-client'
 require 'pry'
-require 'Json'
-require 'Nokogiri'
+require 'json'
+require 'nokogiri'
 require 'test/unit'
 require 'open-uri'
 require_relative 'lib/helpers.rb'
 
 include Test::Unit::Assertions
 
-GO_VERSION = ENV['GO_VERSION'] || (raise 'please provide the GO_VERSION environment variable')
+RELEASES_JSON_URL = 'https://download.go.cd/experimental/releases.json'.freeze
 IMAGE_PARAMS = { server: { path: File.expand_path('../gocd-docker/phusion/server'), tag: 'gocd-server-for-bc-test' },
                  agent: { path: File.expand_path('../gocd-docker/phusion/agent'), tag: 'gocd-agent' } }.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
@@ -42,10 +42,16 @@ task :clean do
   Docker::Image.all.each do |image|
     image.remove(:force => true)
   end
+  Docker::Volume.all.each do |vol|
+    vol.remove(:force => true) if vol.info['Mountpoint'].nil?
+  end
 end
 
 desc 'create server and agent image'
 task :init do
+  json = JSON.parse(open(RELEASES_JSON_URL).read)
+  version, release = json.sort {|a, b| a['go_full_version'] <=> b['go_full_version']}.last['go_full_version'].split('-')
+  GO_VERSION = "#{version}-#{release}".freeze
   IMAGE_PARAMS.each do |identifier, parameter|
     puts "Creating a #{identifier} image from test version #{GO_VERSION}"
     cd (parameter[:path]).to_s do
