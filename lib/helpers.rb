@@ -16,8 +16,8 @@
 
 require 'rest-client'
 require 'pry'
-require 'Json'
-require 'Nokogiri'
+require 'json'
+require 'nokogiri'
 require 'test/unit'
 require 'open-uri'
 
