@@ -25,7 +25,7 @@ require_relative 'lib/helpers.rb'
 
 include Test::Unit::Assertions
 
-RELEASES_JSON_URL = 'https://download.go.cd/experimental/releases.json'.freeze
+RELEASES_JSON_URL = 'https://download.gocd.io/experimental/releases.json'.freeze
 IMAGE_PARAMS = { server: { path: File.expand_path('../gocd-docker/phusion/server'), tag: 'gocd-server-for-bc-test' },
                  agent: { path: File.expand_path('../gocd-docker/phusion/agent'), tag: 'gocd-agent' } }.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
@@ -55,7 +55,7 @@ task :init do
   IMAGE_PARAMS.each do |identifier, parameter|
     puts "Creating a #{identifier} image from test version #{GO_VERSION}"
     cd (parameter[:path]).to_s do
-      sh("docker build --build-arg GO_VERSION=#{GO_VERSION} --build-arg DOWNLOAD_URL='https://download.go.cd/experimental/binaries' -t #{parameter[:tag]} .")
+      sh("docker build --build-arg GO_VERSION=#{GO_VERSION} --build-arg DOWNLOAD_URL='https://download.gocd.io/experimental/binaries' -t #{parameter[:tag]} .")
     end
   end
 end
