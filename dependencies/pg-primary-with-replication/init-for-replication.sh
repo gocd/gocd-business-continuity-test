@@ -19,5 +19,3 @@ hot_standby = on
 wal_level = hot_standby
 wal_keep_segments = 30
 EOF
-
-mkdir -p /share && chown postgres:postgres /share

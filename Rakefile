@@ -25,7 +25,8 @@ require_relative 'lib/helpers.rb'
 
 include Test::Unit::Assertions
 
-RELEASES_JSON_URL = 'https://download.go.cd/experimental/releases.json'.freeze
+RELEASES_JSON_URL = ENV['RELEASES_JSON_URL'] || 'https://download.go.cd/experimental/releases.json'.freeze
+BINARIES_DOWNLOAD_URL = ENV['BINARIES_DOWNLOAD_URL'] || 'https://download.go.cd/experimental/binaries'.freeze
 IMAGE_PARAMS = { server: { path: File.expand_path('../gocd-docker/phusion/server'), tag: 'gocd-server-for-bc-test' },
                  agent: { path: File.expand_path('../gocd-docker/phusion/agent'), tag: 'gocd-agent' } }.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
@@ -45,6 +46,7 @@ task :clean do
   Docker::Volume.all.each do |vol|
     vol.remove(:force => true) if vol.info['Mountpoint'].nil?
   end
+  sh("docker volume rm $(docker volume ls -qf dangling=true) || true" )
 end
 
 desc 'create server and agent image'
@@ -55,7 +57,7 @@ task :init do
   IMAGE_PARAMS.each do |identifier, parameter|
     puts "Creating a #{identifier} image from test version #{GO_VERSION}"
     cd (parameter[:path]).to_s do
-      sh("docker build --build-arg GO_VERSION=#{GO_VERSION} --build-arg DOWNLOAD_URL='https://download.go.cd/experimental/binaries' -t #{parameter[:tag]} .")
+      sh("docker build --build-arg GO_VERSION=#{GO_VERSION} --build-arg DOWNLOAD_URL='#{BINARIES_DOWNLOAD_URL}' -t #{parameter[:tag]} .")
     end
   end
 end
@@ -139,4 +141,15 @@ task :verify_sync_with_timestamp do
   puts "Sync after primary server changes successfull"
 end
 
-task default: [:clean, :init, :compose, :verify_setup, :setup_oauth_client, :verify_sync, :update_primary_state, :verify_sync_with_timestamp]
+task :default do
+  begin
+    [:clean, :init, :compose, :verify_setup, :setup_oauth_client, :verify_sync, :update_primary_state, :verify_sync_with_timestamp].each {|t|
+      Rake::Task["#{t}"].invoke
+    }
+  rescue => e
+    raise "BC testing failed. Error message #{e.message}"
+  ensure
+    Rake::Task["clean"].reenable
+    Rake::Task["clean"].invoke
+  end
+end

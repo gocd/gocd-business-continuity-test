@@ -33,7 +33,7 @@ def synced?
 end
 
 def sync_successful? (response)
-  (response[:primaryServerDetails].select{|key,value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 7) && (response[:oauthSetupStatus] == 'success') && (response[:syncErrors].empty?)
+  (response[:primaryServerDetails].select{|key,value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 6) && (response[:oauthSetupStatus] == 'success') && (response[:syncErrors].empty?)
 end
 
 def check_pipeline_status
