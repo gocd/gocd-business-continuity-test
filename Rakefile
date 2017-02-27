@@ -41,6 +41,7 @@ task :clean do
   Docker::Container.all.each do |container|
     container.delete(:force => true)
   end
+  sh ("docker rm -f $(docker ps -qa) || true")
   Docker::Image.all.each do |image|
     image.remove(:force => true)
   end
