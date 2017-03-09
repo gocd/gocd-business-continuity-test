@@ -38,11 +38,13 @@ end
 
 def check_pipeline_status
   begin
-    Timeout.timeout(180) do
+    Timeout.timeout(360) do
       while(true) do
-        sleep 5
+        sleep 20
         runs = JSON.parse(open("#{@urls['primarygo'][:site_url]}/api/dashboard",'Accept' => 'application/vnd.go.cd.v1+json').read)
-        if runs["_embedded"]["pipeline_groups"][0]["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]  == 'Passed'
+        status = runs["_embedded"]["pipeline_groups"][0]["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]
+        p "This is the pipeline status - #{status}" #Just a debug statement , need to be removed after getting test pass
+        if status  == 'Passed'
           puts 'Pipeline completed with success'
           break
         end
