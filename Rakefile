@@ -28,8 +28,8 @@ include Test::Unit::Assertions
 RELEASES_JSON_URL = ENV['RELEASES_JSON_URL'] || 'https://download.go.cd/experimental/releases.json'.freeze
 BINARIES_DOWNLOAD_URL = ENV['BINARIES_DOWNLOAD_URL'] || 'https://download.go.cd/experimental/binaries'.freeze
 
-IMAGE_PARAMS = { server: { path: File.expand_path('../gocd-docker/phusion/server'), tag: 'gocd-server-for-bc-test' },
-                 agent: { path: File.expand_path('../gocd-docker/phusion/agent'), tag: 'gocd-agent' } }.freeze
+IMAGE_PARAMS = { server: { path: File.expand_path('../docker-gocd-server'), tag: 'gocd-server-for-bc-test' },
+                 agent: { path: File.expand_path('../docker-gocd-agent'), tag: 'gocd-agent' } }.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
 
 @last_sync_time = nil
@@ -58,14 +58,17 @@ task :init do
   GO_VERSION = "#{version}-#{release}".freeze
   IMAGE_PARAMS.each do |identifier, parameter|
     puts "Creating a #{identifier} image from test version #{GO_VERSION}"
+    t = identifier.to_s == 'agent' ? 'gocd-agent-centos-7:build_image' : 'build_image'
     cd (parameter[:path]).to_s do
-      sh("docker build --build-arg GO_VERSION=#{GO_VERSION} --build-arg DOWNLOAD_URL='#{BINARIES_DOWNLOAD_URL}' -t #{parameter[:tag]} .")
+      sh("GOCD_VERSION=#{version} GOCD_FULL_VERSION=#{GO_VERSION} GOCD_#{identifier.to_s.upcase}_DOWNLOAD_URL='#{BINARIES_DOWNLOAD_URL}/#{GO_VERSION}/generic/go-#{identifier.to_s}-#{GO_VERSION}.zip' TAG=#{parameter[:tag]} rake #{t}")
     end
   end
 end
 
 desc 'docker compose'
 task :compose do
+  sh('chmod 777 dependencies/go-primary/init.sh')
+  sh('chmod 777 dependencies/go-secondary/init.sh')
   sh('docker-compose up -d')
 end
 
@@ -144,7 +147,7 @@ task :verify_sync_with_timestamp do
 end
 
 task :default do
-  begin
+  begin #:clean, :init,
     [:clean, :init, :compose, :verify_setup, :setup_oauth_client, :verify_sync, :update_primary_state, :verify_sync_with_timestamp].each {|t|
       Rake::Task["#{t}"].invoke
     }

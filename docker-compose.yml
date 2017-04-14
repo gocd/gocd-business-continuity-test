@@ -18,17 +18,19 @@ primarydb:
 # Primary Go Server
 primarygo:
   # Build this image using https://hub.docker.com/r/gocd/gocd-server/, with the right commit that you need for testing.
-  image: gocd-server-for-bc-test
+  image: gocd-server:gocd-server-for-bc-test
 
   links:
     - primarydb:db
+
+  command: ["./godata/init.sh"]
 
   environment:
     - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase
 
   volumes:
-    - ./dependencies/postgresqldb.properties:/etc/go/postgresqldb.properties
-    - ./dependencies/addons:/go-addons
+    - ./dependencies/postgresqldb.properties:/godata/config/postgresqldb.properties
+    - ./dependencies/go-primary:/godata
     - ./dependencies/go-primary/init.sh:/init.sh
 
   ports:
@@ -50,18 +52,20 @@ secondarydb:
 # Secondary Go Server
 secondarygo:
   # Build this image using https://hub.docker.com/r/gocd/gocd-server/, with the right commit that you need for testing.
-  image: gocd-server-for-bc-test
+  image: gocd-server:gocd-server-for-bc-test
 
   links:
     - secondarydb:db
     - primarygo:primarygo
 
+  command: ["./godata/init.sh"]
+
   environment:
     - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -Dgo.server.mode=standby -Dbc.primary.url=https://primarygo:8154
 
   volumes:
-    - ./dependencies/postgresqldb.properties:/etc/go/postgresqldb.properties
-    - ./dependencies/addons:/go-addons
+    - ./dependencies/postgresqldb.properties:/godata/config/postgresqldb.properties
+    - ./dependencies/go-secondary:/godata
     - ./dependencies/go-secondary/init.sh:/init.sh
 
   ports:
@@ -72,7 +76,8 @@ secondarygo:
 
 # A Go Agent, setup to use the virtual IP (172.17.17.17). You need to setup this up manually.
 agent1:
-  image: gocd/gocd-agent
+  image: gocd-agent-centos-7:gocd-agent
 
   environment:
     - GO_SERVER=172.17.17.17
+    - AGENT_AUTO_REGISTER_KEY=123456789abcdef

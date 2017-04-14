@@ -11,3 +11,5 @@ while [ "$count" -lt "60" -a "$(nc -zv "${PRIMARY_GO}" 8153 2>/dev/null; echo $?
   sleep 2;
   count=$((count + 1))
 done
+
+bash -x /docker-entrypoint.sh
