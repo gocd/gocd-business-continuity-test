@@ -40,6 +40,8 @@ GEM
 
 PLATFORMS
   ruby
+  universal-darwin-15
+  x86_64-darwin-15
 
 DEPENDENCIES
   docker-api
@@ -51,4 +53,4 @@ DEPENDENCIES
   test-unit
 
 BUNDLED WITH
-   1.12.5
+   1.14.6
