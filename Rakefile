@@ -28,8 +28,8 @@ include Test::Unit::Assertions
 RELEASES_JSON_URL = ENV['RELEASES_JSON_URL'] || 'https://download.go.cd/experimental/releases.json'.freeze
 BINARIES_DOWNLOAD_URL = ENV['BINARIES_DOWNLOAD_URL'] || 'https://download.go.cd/experimental/binaries'.freeze
 
-IMAGE_PARAMS = { server: { path: File.expand_path('../docker-gocd-server'), tag: 'gocd-server-for-bc-test' },
-                 agent: { path: File.expand_path('../docker-gocd-agent'), tag: 'gocd-agent' } }.freeze
+IMAGE_PARAMS = { server: { path: File.expand_path('../gocd-server'), tag: 'gocd-server-for-bc-test' },
+                 agent: { path: File.expand_path('../gocd-agent'), tag: 'gocd-agent' } }.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
 
 @last_sync_time = nil

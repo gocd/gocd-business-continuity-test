@@ -1,2 +1,3 @@
-dependencies/addons/*.jar
+go-primary/addons/*.jar
+go-secondary/addons/*.jar
 vendor/bundle
