@@ -12,4 +12,6 @@ while [ "$count" -lt "60" -a "$(nc -zv "${PRIMARY_GO}" 8153 2>/dev/null; echo $?
   count=$((count + 1))
 done
 
+chown -R 1000:1000 /godata/*
+
 bash -x /docker-entrypoint.sh
