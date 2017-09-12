@@ -54,7 +54,7 @@ end
 desc 'create server and agent image'
 task :init do
   json = JSON.parse(open(RELEASES_JSON_URL).read)
-  version, release = json.sort {|a, b| a['go_full_version'] <=> b['go_full_version']}.last['go_full_version'].split('-')
+  version, release = json.select {|x| x['go_version'] == ENV['GO_VERSION']}.sort {|a, b| a['go_build_number'] <=> b['go_build_number']}.last['go_full_version'].split('-')
   GO_VERSION = "#{version}-#{release}".freeze
   IMAGE_PARAMS.each do |identifier, parameter|
     puts "Creating a #{identifier} image from test version #{GO_VERSION}"
