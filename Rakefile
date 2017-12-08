@@ -140,6 +140,7 @@ end
 desc 'verify sync on secondary server after an update on primary server - Check for timestamp'
 task :verify_sync_with_timestamp do
   if synced?
+    sleep 60
     response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json")
     assert @last_sync_time < JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
   end
@@ -147,7 +148,7 @@ task :verify_sync_with_timestamp do
 end
 
 task :default do
-  begin #:clean, :init,
+  begin
     [:clean, :init, :compose, :verify_setup, :setup_oauth_client, :verify_sync, :update_primary_state, :verify_sync_with_timestamp].each {|t|
       Rake::Task["#{t}"].invoke
     }
