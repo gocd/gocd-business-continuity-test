@@ -8,6 +8,7 @@ GEM
     domain_name (0.5.20160826)
       unf (>= 0.0.5, < 1.0.0)
     excon (0.52.0)
+    fileutils (1.1.0)
     http-cookie (1.0.2)
       domain_name (~> 0.5)
     json (2.0.2)
@@ -42,9 +43,11 @@ PLATFORMS
   ruby
   universal-darwin-15
   x86_64-darwin-15
+  x86_64-darwin-17
 
 DEPENDENCIES
   docker-api
+  fileutils
   json
   nokogiri
   pry

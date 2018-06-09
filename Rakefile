@@ -1,5 +1,5 @@
 ##########################################################################
-# Copyright 2016 ThoughtWorks, Inc.
+# Copyright 2018 ThoughtWorks, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,46 +21,77 @@ require 'json'
 require 'nokogiri'
 require 'test/unit'
 require 'open-uri'
+require 'fileutils'
 require_relative 'lib/helpers.rb'
 
 include Test::Unit::Assertions
 
 RELEASES_JSON_URL = ENV['RELEASES_JSON_URL'] || 'https://download.go.cd/experimental/releases.json'.freeze
 BINARIES_DOWNLOAD_URL = ENV['BINARIES_DOWNLOAD_URL'] || 'https://download.go.cd/experimental/binaries'.freeze
-
-IMAGE_PARAMS = { server: { path: File.expand_path('../gocd-server'), tag: 'gocd-server-for-bc-test' },
-                 agent: { path: File.expand_path('../gocd-agent'), tag: 'gocd-agent' } }.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
+GO_VERSION = ENV['GO_VERSION']
+GOCD_GIT_SHA = ENV['GOCD_GIT_SHA']
+IMAGE_PARAMS = {
+    server: {path: File.expand_path('../docker-gocd-server'), tag: 'gocd-server-for-bc-test'},
+    agent: {path: File.expand_path('../docker-gocd-agent'), tag: 'gocd-agent-for-bc-test'}
+}.freeze
+
+if GO_VERSION.nil?
+  puts "=> Environment variable #{GO_VERSION} must be specified."
+end
+
+if GOCD_GIT_SHA.nil?
+  puts "=> Environment variable #{GOCD_GIT_SHA} must be specified."
+end
 
 @last_sync_time = nil
-@urls=nil
-Docker.url='unix:///var/run/docker.sock'
+@urls = nil
+Docker.url = 'unix:///var/run/docker.sock'
 
 desc 'clean all images'
 task :clean do
+  info 'Deleting running docker containers.'
   Docker::Container.all.each do |container|
     container.delete(:force => true)
   end
-  sh ("docker rm -f $(docker ps -qa) || true")
+  success 'Containers successfully deleted.'
+
+  info 'Deleting previously created docker images.'
   Docker::Image.all.each do |image|
-    image.remove(:force => true)
+    image_tag = image.info['RepoTags'][0]
+    image.remove(:force => true) if ['gocd-agent-for-bc-test', 'gocd-server-for-bc-test'].include?(image_tag.split(':')[1])
   end
+  success 'Images successfully deleted.'
+
+  info 'Deleting all volume mounts created docker images.'
   Docker::Volume.all.each do |vol|
     vol.remove(:force => true) if vol.info['Mountpoint'].nil?
   end
-  sh("docker volume rm $(docker volume ls -qf dangling=true) || true" )
+  success 'Volume mounts successfully deleted.'
+  clean_godata_dir
+end
+
+def clean_godata_dir
+  %w(go-primary to-secondary).each do |server_dir|
+    %w(artifacts config db logs plugins).each do |dir|
+      dir_name = "#{Dir.pwd}/dependencies/#{server_dir}/#{dir}"
+      FileUtils.rm_rf(dir_name) if File.exist?(dir_name)
+    end
+  end
 end
 
 desc 'create server and agent image'
 task :init do
   json = JSON.parse(open(RELEASES_JSON_URL).read)
-  version, release = json.select {|x| x['go_version'] == ENV['GO_VERSION']}.sort {|a, b| a['go_build_number'] <=> b['go_build_number']}.last['go_full_version'].split('-')
-  GO_VERSION = "#{version}-#{release}".freeze
+  info json
+  version, release = json.select {|x| x['go_version'] == GO_VERSION}.sort {|a, b| a['go_build_number'] <=> b['go_build_number']}.last['go_full_version'].split('-')
+  GO_FULL_VERSION = "#{version}-#{release}".freeze
+  info "Creating GoCD server image for version #{GO_FULL_VERSION}"
   IMAGE_PARAMS.each do |identifier, parameter|
-    puts "Creating a #{identifier} image from test version #{GO_VERSION}"
+    info "Creating a #{identifier} image from test version #{GO_FULL_VERSION}"
     t = identifier.to_s == 'agent' ? 'gocd-agent-centos-7:build_image' : 'build_image'
     cd (parameter[:path]).to_s do
-      sh("GOCD_VERSION=#{version} GOCD_FULL_VERSION=#{GO_VERSION} GOCD_#{identifier.to_s.upcase}_DOWNLOAD_URL='#{BINARIES_DOWNLOAD_URL}/#{GO_VERSION}/generic/go-#{identifier.to_s}-#{GO_VERSION}.zip' TAG=#{parameter[:tag]} rake #{t}")
+      sh("GOCD_VERSION=#{version} GOCD_FULL_VERSION=#{GO_FULL_VERSION} GOCD_#{identifier.to_s.upcase}_DOWNLOAD_URL='#{BINARIES_DOWNLOAD_URL}/#{GO_FULL_VERSION}/generic/go-#{identifier.to_s}-#{GO_VERSION}.zip' TAG=#{parameter[:tag]} rake #{t}")
     end
   end
 end
@@ -74,66 +105,98 @@ end
 
 desc 'verify agent registered to server'
 task :verify_setup do
-   puts "Waiting for the primary/secondary server to start......."
-   @urls = %w(primarygo secondarygo).each_with_object({}) do |service, url|
-            url[service] = Hash.new
-            container_ports = Docker::Container.all.collect {|container| container.info['Ports'] if container.info['Labels']['com.docker.compose.service'].include?service}
-            container_ports.each do |ports|
-              if !ports.nil?
-                ports.each do |port|
-                  url[service].merge!("site_url": "http://localhost:#{port['PublicPort']}/go") if port['PrivatePort'] == 8153
-                  url[service].merge!("secure_site_url": "https://localhost:#{port['PublicPort']}/go") if port['PrivatePort'] == 8154
-                end
-              end
-            end
-            url
-          end
+  info 'Waiting for the primary and secondary server to start.'
+  @urls = %w(primarygo secondarygo).each_with_object({}) do |service, url|
+    server_url = Hash.new
+    container_ports = Docker::Container.all.collect {|container| container.info['Ports'] if container.info['Labels']['com.docker.compose.service'].include? service}
+    container_ports.each do |ports|
+      unless ports.nil?
+        ports.each do |port|
+          info port
+          server_url['site_url'] = "http://localhost:#{port['PublicPort']}/go" if port['PrivatePort'] == 8153
+          server_url['secure_site_url'] = "https://localhost:#{port['PublicPort']}/go" if port['PrivatePort'] == 8154
+        end
+      end
+    end
+    url[service] = server_url
+    url
+  end
+  info "Server info: #{@urls}"
+  wait_to_start(primary_url('/admin/agent', false))
+  wait_to_start(secondary_url('/add-on/business-continuity/admin/dashboard', false))
+  info 'Successfully started the primary and secondary servers.'
+end
 
-    wait_to_start("#{@urls['primarygo'][:site_url]}/admin/agent")
-    wait_to_start("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard")
-    puts "Successfully started the primary and secondary servers"
+def primary_url(api_url, secure)
+  "#{@urls['primarygo'][secure ? 'secure_site_url' : 'site_url']}" + api_url
+end
+
+def secondary_url(api_url, secure = false)
+  "#{@urls['secondarygo'][secure ? 'secure_site_url' : 'site_url']}" + api_url
 end
 
 desc 'setup oAuth client on primary server'
 task :setup_oauth_client do
-  client_name = JSON.parse(open("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json").read)['syncErrors'][0].split("'")[1]
   new_oauth = RestClient::Request.execute(
-                  method: :GET,
-                  url: "#{@urls['primarygo'][:secure_site_url]}/oauth/admin/clients/new",
-                  :verify_ssl => false)
+      method: :GET,
+      url: primary_url('/oauth/admin/clients/new', true),
+      user: 'admin',
+      password: 'badger',
+      :verify_ssl => false)
   authenticity_token = Nokogiri::HTML(new_oauth.body).xpath("//input[@name='authenticity_token']/@value").to_s
+  info "Auth token #{authenticity_token}"
+
+  dashboard_json = RestClient::Request.execute(
+      method: :GET,
+      url: secondary_url('/add-on/business-continuity/admin/dashboard.json', false),
+      user: 'admin',
+      password: 'badger',
+      :cookies => new_oauth.cookies
+  )
+
+  client_name = JSON.parse(dashboard_json)['syncErrors'][0].split("'")[1]
+  info "Client name #{client_name}"
+
   begin
     RestClient::Request.execute(
-                    method: :POST ,
-                    url: "#{@urls['primarygo'][:secure_site_url]}/oauth/admin/clients",
-                    :payload => {"client[name]" => client_name, "client[redirect_uri]" => "#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/setup", "authenticity_token" => "#{authenticity_token}"},
-                    :cookies => new_oauth.cookies, :verify_ssl => false)
+        method: :POST,
+        url: primary_url('/oauth/admin/clients', true),
+        :payload => {"client[name]" => client_name, "client[redirect_uri]" => secondary_url('/add-on/business-continuity/admin/setup', false), "authenticity_token" => "#{authenticity_token}"},
+        :cookies => new_oauth.cookies, :verify_ssl => false)
   rescue RestClient::ExceptionWithResponse => err
     assert err.response.code == 302
     err.response.follow_redirection
   end
-  puts "oAuth client setup on the primary server"
+  info "oAuth client setup on the primary server"
 end
 
 desc 'setup oAuth and verify sync on secondary server'
 task :verify_sync do
-  response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/setup")
+  response = RestClient::Request.execute(
+      url: secondary_url('/add-on/business-continuity/admin/setup', false),
+      method: :GET,
+      user: 'admin',
+      password: 'badger'
+  )
   assert response.code == 200
   if synced?
-    response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json")
-    @last_sync_time = JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
+    response = RestClient::Request.execute(
+        url: secondary_url('/add-on/business-continuity/admin/dashboard.json', false),
+        method: :GET,
+        user: 'admin',
+        password: 'badger'
+    )
+    @last_sync_time = JSON.parse(response.body, :symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
   end
-  puts "Initial Sync successfull"
+  info "Initial Sync successfull"
 end
 
 desc 'Create a pipeline on primary and wait for it to pass and then verify sync is successfull'
 task :update_primary_state do
-  url = "#{@urls['primarygo'][:site_url]}/api/admin/pipelines"
-  sh(%Q{curl -sL -w "%{http_code}" -X POST  -H "Accept: application/vnd.go.cd.v3+json" -H "Content-Type: application/json" --data "@pipeline.json" #{url} -o /dev/null})
-  url = "#{@urls['primarygo'][:site_url]}/api/pipelines/#{PIPELINE_NAME}/unpause"
-  sh(%Q{curl -sL -w "%{http_code}" -X POST  -H "Accept:application/vnd.go.cd.v1+text" -H "CONFIRM:true" #{url} -o /dev/null})
-  url = "#{@urls['primarygo'][:site_url]}/api/pipelines/#{PIPELINE_NAME}/schedule"
-  sh(%Q{curl -sL -w "%{http_code}" -X POST -H "Accept:application/vnd.go.cd.v1+text" -H "CONFIRM:true" #{url} -o /dev/null})
+  info 'Creating new pipeline'
+  curl_post(primary_url('/api/admin/pipelines', false), 'admin', 'badger', 'application/vnd.go.cd.v5+json', '@pipeline.json')
+  curl_post(primary_url("/api/pipelines/#{PIPELINE_NAME}/unpause", false), 'admin', 'badger', 'application/vnd.go.cd.v1+text', '@pipeline.json')
+  curl_post(primary_url("/api/pipelines/#{PIPELINE_NAME}/schedule", false), 'admin', 'badger', 'application/vnd.go.cd.v1+text', '@pipeline.json')
   check_pipeline_status
 end
 
@@ -141,8 +204,8 @@ desc 'verify sync on secondary server after an update on primary server - Check 
 task :verify_sync_with_timestamp do
   if synced?
     sleep 60
-    response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json")
-    assert @last_sync_time < JSON.parse(response.body,:symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
+    response = RestClient.get(secondary_url('/add-on/business-continuity/admin/dashboard.json'))
+    assert @last_sync_time < JSON.parse(response.body, :symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
   end
   puts "Sync after primary server changes successfull"
 end

@@ -1,0 +1,10 @@
+{
+  "id": "password_file",
+  "plugin_id": "cd.go.authentication.passwordfile",
+  "properties": [
+    {
+      "key": "PasswordFilePath",
+      "value": "/godata/password.properties"
+    }
+  ]
+}
