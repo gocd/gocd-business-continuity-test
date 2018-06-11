@@ -50,8 +50,7 @@ task :clean do
 
   info 'Deleting previously created docker images.'
   Docker::Image.all.each do |image|
-    image_tag = image.info['RepoTags'][0]
-    image.remove(:force => true) if ['gocd-agent-for-bc-test', 'gocd-server-for-bc-test'].include?(image_tag.split(':')[1])
+    image.remove(:force => true)
   end
   success 'Images successfully deleted.'
 
