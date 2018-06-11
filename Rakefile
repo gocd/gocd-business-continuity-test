@@ -167,7 +167,7 @@ task :setup_oauth_client do
     assert err.response.code == 302
     err.response.follow_redirection
   end
-  info "oAuth client setup on the primary server"
+  info "oAuth client setup on the primary server."
 end
 
 desc 'setup oAuth and verify sync on secondary server'
@@ -188,7 +188,7 @@ task :verify_sync do
     )
     @last_sync_time = JSON.parse(response.body, :symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
   end
-  info "Initial Sync successfull"
+  info "Initial Sync successful."
 end
 
 desc 'Create a pipeline on primary and wait for it to pass and then verify sync is successfull'
@@ -207,7 +207,7 @@ task :verify_sync_with_timestamp do
     response = RestClient.get(secondary_url('/add-on/business-continuity/admin/dashboard.json'))
     assert @last_sync_time < JSON.parse(response.body, :symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
   end
-  puts "Sync after primary server changes successfull"
+  puts "Sync after primary server changes successful."
 end
 
 task :default do
