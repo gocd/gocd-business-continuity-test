@@ -83,7 +83,7 @@ task :init do
     info "Creating a #{identifier} image from test version #{GO_FULL_VERSION}"
     t = identifier.to_s == 'agent' ? 'gocd-agent-centos-7:build_image' : 'build_image'
     cd (parameter[:path]).to_s do
-      sh("GOCD_VERSION=#{version} GOCD_FULL_VERSION=#{GO_FULL_VERSION} GOCD_#{identifier.to_s.upcase}_DOWNLOAD_URL='#{BINARIES_DOWNLOAD_URL}/#{GO_FULL_VERSION}/generic/go-#{identifier.to_s}-#{GO_VERSION}.zip' TAG=#{parameter[:tag]} rake #{t}")
+      sh("GOCD_VERSION=#{version} GOCD_FULL_VERSION=#{GO_FULL_VERSION} GOCD_#{identifier.to_s.upcase}_DOWNLOAD_URL='#{BINARIES_DOWNLOAD_URL}/#{GO_FULL_VERSION}/generic/go-#{identifier.to_s}-#{GO_FULL_VERSION}.zip' TAG=#{parameter[:tag]} rake #{t}")
     end
   end
 end
