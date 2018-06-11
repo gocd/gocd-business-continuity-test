@@ -26,7 +26,7 @@ primarygo:
   command: ["./godata/init.sh"]
 
   environment:
-    - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase
+    - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
 
   volumes:
     - ./dependencies/postgresqldb.properties:/godata/config/postgresqldb.properties
@@ -36,6 +36,7 @@ primarygo:
   ports:
     - "8153"
     - "8154"
+    - "5005"
 
   privileged: true
 
@@ -61,7 +62,7 @@ secondarygo:
   command: ["./godata/init.sh"]
 
   environment:
-    - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -Dgo.server.mode=standby -Dbc.primary.url=https://primarygo:8154
+    - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Dgo.server.mode=standby -Dbc.primary.url=https://primarygo:8154
 
   volumes:
     - ./dependencies/postgresqldb.properties:/godata/config/postgresqldb.properties
@@ -71,6 +72,7 @@ secondarygo:
   ports:
     - "8153"
     - "8154"
+    - "5005"
 
   privileged: true
 

@@ -25,25 +25,30 @@ include Test::Unit::Assertions
 
 def synced?
   wait_till_event_occurs_or_bomb 120, "Sync Failed" do
-    response = RestClient.get("#{@urls['secondarygo'][:site_url]}/add-on/business-continuity/admin/dashboard.json")
+    response = RestClient::Request.execute(
+        url: secondary_url('/add-on/business-continuity/admin/dashboard.json', false),
+        method: :GET,
+        user: 'admin',
+        password: 'badger'
+    )
     assert response.code == 200
-    break if sync_successful?(JSON.parse(response.body,:symbolize_names => true))
+    break if sync_successful?(JSON.parse(response.body, :symbolize_names => true))
   end
   true
 end
 
 def sync_successful? (response)
-  (response[:primaryServerDetails].select{|key,value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 6) && (response[:oauthSetupStatus] == 'success') && (response[:syncErrors].empty?)
+  (response[:primaryServerDetails].select {|key, value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 6) && (response[:oauthSetupStatus] == 'success') && (response[:syncErrors].empty?)
 end
 
 def check_pipeline_status
   begin
     Timeout.timeout(180) do
-      while(true) do
+      while (true) do
         sleep 5
-        runs = JSON.parse(open("#{@urls['primarygo'][:site_url]}/api/dashboard",'Accept' => 'application/vnd.go.cd.v1+json').read)
+        runs = JSON.parse(open("#{@urls['primarygo'][:site_url]}/api/dashboard", 'Accept' => 'application/vnd.go.cd.v1+json').read)
         status = runs["_embedded"]["pipeline_groups"][0]["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]
-        if status  == 'Passed'
+        if status == 'Passed'
           puts 'Pipeline completed with success'
           break
         end
@@ -57,23 +62,23 @@ end
 
 def wait_to_start(url)
   wait_till_event_occurs_or_bomb 180, "Connect to : #{url}" do
-      begin
-        break if running?(url)
-      rescue Errno::ECONNREFUSED
-        sleep 5
-      end
+    begin
+      break if running?(url)
+    rescue Errno::ECONNREFUSED
+      sleep 5
     end
+  end
 end
 
 def wait_till_event_occurs_or_bomb(wait_time, message)
-      Timeout.timeout(wait_time) do
-        loop do
-          yield if block_given?
-          sleep 5
-        end
-      end
-    rescue Timeout::Error
-      raise "The event did not occur - #{message}. Wait timed out"
+  Timeout.timeout(wait_time) do
+    loop do
+      yield if block_given?
+      sleep 5
+    end
+  end
+rescue Timeout::Error
+  raise "The event did not occur - #{message}. Wait timed out"
 end
 
 
@@ -87,4 +92,25 @@ end
 
 def ping(url)
   RestClient.get("#{url}")
+end
+
+def success str
+  puts "[32m=>[0m #{str}"
+end
+
+def info str
+  puts "[36m=>[0m #{str}"
+end
+
+def abort(str)
+  puts "[31m=>[0m #{str}"
+  raise ArgumentError
+end
+
+def env(key)
+  value = ENV[key].to_s.strip
+  if value == ''
+    abort("Environment variable #{key} must be specified.")
+  end
+  value
 end
