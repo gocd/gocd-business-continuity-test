@@ -60,11 +60,10 @@ task :clean do
     vol.remove(:force => true) if vol.info['Mountpoint'].nil?
   end
   success 'Volume mounts successfully deleted.'
-  clean_godata_dir
 end
 
-def clean_godata_dir
-  %w(go-primary to-secondary).each do |server_dir|
+task :clean_godata_dir do
+  %w(go-primary go-secondary).each do |server_dir|
     %w(artifacts config db logs plugins).each do |dir|
       dir_name = "#{Dir.pwd}/dependencies/#{server_dir}/#{dir}"
       FileUtils.rm_rf(dir_name) if File.exist?(dir_name)
