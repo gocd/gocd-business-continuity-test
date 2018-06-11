@@ -78,7 +78,7 @@ secondarygo:
 
 # A Go Agent, setup to use the virtual IP (172.17.17.17). You need to setup this up manually.
 agent1:
-  image: gocd-agent-centos-7:gocd-agent
+  image: gocd-agent-centos-7:gocd-agent-for-bc-test
 
   environment:
     - GO_SERVER=172.17.17.17
