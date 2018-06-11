@@ -102,18 +102,15 @@ def info str
   puts "[36m=>[0m #{str}"
 end
 
-def basic_auth(password, username)
-  unless username.nil? && password.nil?
-    "-u'#{username}:#{password}'"
+def abort(str)
+  puts "[31m=>[0m #{str}"
+  raise ArgumentError
+end
+
+def env(key)
+  value = ENV[key].to_s.strip
+  if value == ''
+    abort("Environment variable #{key} must be specified.")
   end
-  ''
-end
-
-def curl_get(url, username, password, content_type)
-  info "executing curl request #{url} with basic_auth(#{username},#{password})"
-  sh(%Q{curl #{basic_auth(password, username)} -sL -w "%{http_code}" -H "#{content_type}" -H "Content-Type: application/json" #{url} -o /dev/null})
-end
-
-def curl_post(url, username, password, content_type, data)
-  sh(%Q{curl #{basic_auth(password, username)} -sL -w "%{http_code}" -X POST -H "CONFIRM:true" -H "Accept:#{content_type}" -H "Content-Type: application/json" --data #{data} #{url} -o /dev/null})
+  value
 end

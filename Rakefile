@@ -29,20 +29,12 @@ include Test::Unit::Assertions
 RELEASES_JSON_URL = ENV['RELEASES_JSON_URL'] || 'https://download.go.cd/experimental/releases.json'.freeze
 BINARIES_DOWNLOAD_URL = ENV['BINARIES_DOWNLOAD_URL'] || 'https://download.go.cd/experimental/binaries'.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
-GO_VERSION = ENV['GO_VERSION']
-GOCD_GIT_SHA = ENV['GOCD_GIT_SHA']
+GO_VERSION = env('GO_VERSION')
+GOCD_GIT_SHA = env('GOCD_GIT_SHA')
 IMAGE_PARAMS = {
     server: {path: File.expand_path('../docker-gocd-server'), tag: 'gocd-server-for-bc-test'},
     agent: {path: File.expand_path('../docker-gocd-agent'), tag: 'gocd-agent-for-bc-test'}
 }.freeze
-
-if GO_VERSION.nil?
-  puts "=> Environment variable #{GO_VERSION} must be specified."
-end
-
-if GOCD_GIT_SHA.nil?
-  puts "=> Environment variable #{GOCD_GIT_SHA} must be specified."
-end
 
 @last_sync_time = nil
 @urls = nil
