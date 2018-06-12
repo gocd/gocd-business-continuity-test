@@ -42,22 +42,17 @@ Docker.url = 'unix:///var/run/docker.sock'
 
 desc 'clean all images'
 task :clean do
-  info 'Deleting running docker containers.'
   Docker::Container.all.each do |container|
     container.delete(:force => true)
   end
-  success 'Containers successfully deleted.'
-
-  info 'Deleting previously created docker images.'
+  sh ("docker rm -f $(docker ps -qa) || true")
   Docker::Image.all.each do |image|
     image.remove(:force => true)
   end
-  success 'Images successfully deleted.'
-
-  info 'Deleting all volume mounts created docker images.'
   Docker::Volume.all.each do |vol|
     vol.remove(:force => true) if vol.info['Mountpoint'].nil?
   end
+  sh("docker volume rm $(docker volume ls -qf dangling=true) || true" )
   success 'Volume mounts successfully deleted.'
 end
 
@@ -194,7 +189,12 @@ desc 'verify sync on secondary server after an update on primary server - Check 
 task :verify_sync_with_timestamp do
   if synced?
     sleep 60
-    response = RestClient.get(secondary_url('/add-on/business-continuity/admin/dashboard.json'))
+    response = RestClient::Request.execute(
+        url: secondary_url('/add-on/business-continuity/admin/dashboard.json', false),
+        method: :GET,
+        user: 'admin',
+        password: 'badger'
+    )
     assert @last_sync_time < JSON.parse(response.body, :symbolize_names => true)[:primaryServerDetails][:lastConfigUpdateTime]
   end
   puts "Sync after primary server changes successful."
