@@ -46,7 +46,15 @@ def check_pipeline_status
     Timeout.timeout(180) do
       while (true) do
         sleep 5
-        runs = JSON.parse(open("#{@urls['primarygo'][:site_url]}/api/dashboard", 'Accept' => 'application/vnd.go.cd.v1+json').read)
+        response = RestClient::Request.execute(
+            url: primary_url('/api/dashboard', false),
+            method: :GET,
+            user: 'admin',
+            password: 'badger',
+            :headers => {accept: 'application/vnd.go.cd.v1+json'}
+        )
+        
+        runs = JSON.parse(response.body)
         status = runs["_embedded"]["pipeline_groups"][0]["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]
         if status == 'Passed'
           puts 'Pipeline completed with success'
@@ -118,8 +126,9 @@ end
 def basic_auth(password, username)
   unless username.nil? && password.nil?
     "-u'#{username}:#{password}'"
-  end
+  else
   ''
+  end
 end
 
 def curl_get(url, username, password, content_type)
