@@ -11,7 +11,7 @@
     {
       "type": "git",
       "attributes": {
-        "url": "https://github.com/agoyal-git/testrepo.git",
+        "url": "https://github.com/gocd/gocd-business-continuity-test",
         "destination": null,
         "filter": null,
         "name": null,
