@@ -107,7 +107,7 @@ task :verify_setup do
   end
   info "Server info: #{@urls}"
   wait_to_start(primary_url('/admin/agent', false))
-  wait_to_start(secondary_url('/add-on/business-continuity/admin/dashboard', false))
+  wait_to_start(secondary_url('/go', false))
   info 'Successfully started the primary and secondary servers.'
 end
 
@@ -121,15 +121,6 @@ end
 
 desc 'setup oAuth client on primary server'
 task :setup_oauth_client do
-  new_oauth = RestClient::Request.execute(
-    method: :GET,
-    url: primary_url('/oauth/admin/clients/new', true),
-    user: 'admin',
-    password: 'badger',
-    verify_ssl: false
-  )
-  authenticity_token = Nokogiri::HTML(new_oauth.body).xpath("//input[@name='authenticity_token']/@value").to_s
-  info "Auth token #{authenticity_token}"
 
   dashboard_json = RestClient::Request.execute(
     method: :GET,
@@ -158,18 +149,11 @@ end
 
 desc 'setup oAuth and verify sync on secondary server'
 task :verify_sync do
-  response = RestClient::Request.execute(
-    url: secondary_url('/add-on/business-continuity/admin/setup', false),
-    method: :GET,
-    user: 'admin',
-    password: 'badger'
-  )
-  assert response.code == 200
   if synced?
     response = RestClient::Request.execute(
       url: secondary_url('/add-on/business-continuity/admin/dashboard.json', false),
       method: :GET,
-      user: 'admin',
+      user: 'bc_token',
       password: 'badger'
     )
     @last_sync_time = JSON.parse(response.body, symbolize_names: true)[:primaryServerDetails][:lastConfigUpdateTime]
@@ -180,8 +164,7 @@ end
 desc 'Create a pipeline on primary and wait for it to pass and then verify sync is successfull'
 task :update_primary_state do
   info 'Creating new pipeline'
-  curl_post(primary_url('/api/admin/pipelines', false), 'admin', 'badger', 'application/vnd.go.cd.v5+json', '@pipeline.json')
-  curl_post(primary_url("/api/pipelines/#{PIPELINE_NAME}/unpause", false), 'admin', 'badger', 'application/vnd.go.cd.v1+text', '@pipeline.json')
+  curl_post(primary_url('/api/admin/pipelines', false), 'admin', 'badger', 'application/vnd.go.cd.v6+json', '@pipeline.json')
   curl_post(primary_url("/api/pipelines/#{PIPELINE_NAME}/schedule", false), 'admin', 'badger', 'application/vnd.go.cd.v1+text', '@pipeline.json')
   check_pipeline_status
 end
@@ -193,7 +176,7 @@ task :verify_sync_with_timestamp do
     response = RestClient::Request.execute(
       url: secondary_url('/add-on/business-continuity/admin/dashboard.json', false),
       method: :GET,
-      user: 'admin',
+      user: 'bc_token',
       password: 'badger'
     )
     assert @last_sync_time < JSON.parse(response.body, symbolize_names: true)[:primaryServerDetails][:lastConfigUpdateTime]

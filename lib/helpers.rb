@@ -28,7 +28,7 @@ def synced?
     response = RestClient::Request.execute(
         url: secondary_url('/add-on/business-continuity/admin/dashboard.json', false),
         method: :GET,
-        user: 'admin',
+        user: 'bc_token',
         password: 'badger'
     )
     assert response.code == 200
@@ -38,7 +38,7 @@ def synced?
 end
 
 def sync_successful? (response)
-  (response[:primaryServerDetails].select {|key, value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 6) && (response[:oauthSetupStatus] == 'success') && (response[:syncErrors].empty?)
+  (response[:primaryServerDetails].select {|key, value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 6) && (response[:syncErrors].empty?)
 end
 
 def check_pipeline_status

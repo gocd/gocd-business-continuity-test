@@ -28,6 +28,8 @@ while [ "$count" -lt "30" -a "$(nc -zv "${DB}" 5432 2>/dev/null; echo $?)" -ne "
   count=$((count + 1))
 done
 
+mv -f '/godata/business-continuity-token' '/godata/config/business-continuity-token'
+
 touch /etc/rc.local
 
 echo "Assigning this Go Server machine the virtual IP: 172.17.17.17"
