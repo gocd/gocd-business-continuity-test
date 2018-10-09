@@ -165,7 +165,7 @@ desc 'Create a pipeline on primary and wait for it to pass and then verify sync 
 task :update_primary_state do
   info 'Creating new pipeline'
   curl_post(primary_url('/api/admin/pipelines', false), 'admin', 'badger', 'application/vnd.go.cd.v6+json', '@pipeline.json')
-  curl_post(primary_url("/api/pipelines/#{PIPELINE_NAME}/schedule", false), 'admin', 'badger', 'application/vnd.go.cd.v1+text', '@pipeline.json')
+  curl_post(primary_url("/api/pipelines/#{PIPELINE_NAME}/schedule", false), 'admin', 'badger', 'application/vnd.go.cd.v1+json', '@pipeline.json')
   check_pipeline_status
 end
 

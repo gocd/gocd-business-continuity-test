@@ -51,11 +51,15 @@ def check_pipeline_status
             method: :GET,
             user: 'admin',
             password: 'badger',
-            :headers => {accept: 'application/vnd.go.cd.v1+json'}
+            :headers => {accept: 'application/vnd.go.cd.v2+json'}
         )
         
         runs = JSON.parse(response.body)
-        status = runs["_embedded"]["pipeline_groups"][0]["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]
+        begin
+          status = runs["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]
+        rescue StandardError
+          p 'Pipeline still not started building, Waiting...'
+        end
         if status == 'Passed'
           puts 'Pipeline completed with success'
           break
@@ -69,7 +73,7 @@ end
 
 
 def wait_to_start(url)
-  wait_till_event_occurs_or_bomb 180, "Connect to : #{url}" do
+  wait_till_event_occurs_or_bomb 300, "Connect to : #{url}" do
     begin
       break if running?(url)
     rescue Errno::ECONNREFUSED
@@ -137,5 +141,5 @@ def curl_get(url, username, password, content_type)
 end
 
 def curl_post(url, username, password, content_type, data)
-  sh(%Q{curl #{basic_auth(password, username)} -sL -w "%{http_code}" -X POST -H "CONFIRM:true" -H "Accept:#{content_type}" -H "Content-Type: application/json" --data #{data} #{url} -o /dev/null})
+  sh(%Q{curl #{basic_auth(password, username)} -sL -w "%{http_code}" -X POST -H "CONFIRM:true" -H "Accept:#{content_type}" -H "Content-Type: application/json" -H "X-GoCD-Confirm" --data #{data} #{url} -o /dev/null})
 end
