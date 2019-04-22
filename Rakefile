@@ -106,8 +106,8 @@ task :verify_setup do
     url
   end
   info "Server info: #{@urls}"
-  wait_to_start(primary_url('/admin/agent', false))
-  wait_to_start(secondary_url('/go', false))
+  wait_to_start(primary_url('/about', false))
+  wait_to_start(secondary_url('', false))
   info 'Successfully started the primary and secondary servers.'
 end
 
