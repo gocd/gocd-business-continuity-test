@@ -81,5 +81,5 @@ agent1:
   image: gocd-agent-centos-7:gocd-agent-for-bc-test
 
   environment:
-    - GO_SERVER=172.17.17.17
+    - GO_SERVER_URL=https://172.17.17.17:8154/go
     - AGENT_AUTO_REGISTER_KEY=123456789abcdef

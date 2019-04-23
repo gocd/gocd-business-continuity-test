@@ -1,5 +1,7 @@
 #!/bin/bash
 
+yum install -y which net-tools
+
 echo "Setting up an empty Go config file, with site URLs set."
 tee /godata/config/cruise-config.xml >/dev/null <<EOF
 <?xml version="1.0" encoding="utf-8"?>
@@ -33,7 +35,7 @@ mv -f '/godata/business-continuity-token' '/godata/config/business-continuity-to
 touch /etc/rc.local
 
 echo "Assigning this Go Server machine the virtual IP: 172.17.17.17"
-java -Dinterface=eth0:0 -Dip=172.17.17.17 -Dnetmask=255.255.0.0 -jar /godata/addons/go-business-continuity-*.jar assign
+/gocd-jre/bin/java -Dinterface=eth0:0 -Dip=172.17.17.17 -Dnetmask=255.255.0.0 -jar /godata/addons/go-business-continuity-*.jar assign
 
 chown -R 1000:1000 /godata/*
 
