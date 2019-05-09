@@ -1,3 +1,5 @@
 go-primary/addons/*.jar
 go-secondary/addons/*.jar
 vendor
+go-*/
+backup
