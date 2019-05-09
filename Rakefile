@@ -30,11 +30,6 @@ RELEASES_JSON_URL = ENV['RELEASES_JSON_URL'] || 'https://download.go.cd/experime
 BINARIES_DOWNLOAD_URL = ENV['BINARIES_DOWNLOAD_URL'] || 'https://download.go.cd/experimental/binaries'.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
 GO_VERSION = env('GO_VERSION')
-GOCD_GIT_SHA = env('GOCD_GIT_SHA')
-IMAGE_PARAMS = {
-  server: { path: File.expand_path('../docker-gocd-server'), tag: 'gocd-server-for-bc-test' },
-  agent: { path: File.expand_path('../docker-gocd-agent'), tag: 'gocd-agent-for-bc-test' }
-}.freeze
 
 @last_sync_time = nil
 @urls = nil
