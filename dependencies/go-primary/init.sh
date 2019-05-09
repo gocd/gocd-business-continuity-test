@@ -36,11 +36,11 @@ touch /etc/rc.local
 
 echo "Assigning this Go Server machine the virtual IP: 172.17.17.17"
 java -Dinterface=eth0:0 -Dip=172.17.17.17 -Dnetmask=255.255.0.0 -jar /godata/addons/go-business-continuity-*.jar assign
-RES = $?
+RES=$?
 if [ $RES -ne 0 ]; then
   echo "Failed to assign Virtual IP to primary server"
   exit -1
-end
+fi
 
 chown -R 1000:1000 /godata/*
 

@@ -30,11 +30,6 @@ RELEASES_JSON_URL = ENV['RELEASES_JSON_URL'] || 'https://download.go.cd/experime
 BINARIES_DOWNLOAD_URL = ENV['BINARIES_DOWNLOAD_URL'] || 'https://download.go.cd/experimental/binaries'.freeze
 PIPELINE_NAME = 'testpipeline'.freeze
 GO_VERSION = env('GO_VERSION')
-GOCD_GIT_SHA = env('GOCD_GIT_SHA')
-IMAGE_PARAMS = {
-  server: { path: File.expand_path('../docker-gocd-server'), tag: 'gocd-server-for-bc-test' },
-  agent: { path: File.expand_path('../docker-gocd-agent'), tag: 'gocd-agent-for-bc-test' }
-}.freeze
 
 @last_sync_time = nil
 @urls = nil
@@ -71,14 +66,11 @@ task :init do
   info json
   version, release = json.select { |x| x['go_version'] == GO_VERSION }.sort_by { |a| a['go_build_number'] }.last['go_full_version'].split('-')
   GO_FULL_VERSION = "#{version}-#{release}".freeze
-  info "Creating GoCD server image for version #{GO_FULL_VERSION}"
-  IMAGE_PARAMS.each do |identifier, parameter|
-    info "Creating a #{identifier} image from test version #{GO_FULL_VERSION}"
-    t = identifier.to_s == 'agent' ? 'gocd-agent-centos-7:build_image' : 'build_image'
-    cd (parameter[:path]).to_s do
-      sh("GOCD_VERSION=#{version} GOCD_FULL_VERSION=#{GO_FULL_VERSION} GOCD_#{identifier.to_s.upcase}_DOWNLOAD_URL='#{BINARIES_DOWNLOAD_URL}/#{GO_FULL_VERSION}/generic/go-#{identifier}-#{GO_FULL_VERSION}.zip' TAG=#{parameter[:tag]} rake #{t}")
-    end
-  end
+  info "Pulling GoCD server and agent image for version #{GO_FULL_VERSION}"
+  sh ("docker pull gocdexperimental/gocd-server:#{GO_FULL_VERSION}")
+  sh ("docker pull gocdexperimental/gocd-agent-alpine-3.9:#{GO_FULL_VERSION}")
+  sh ("docker tag gocdexperimental/gocd-server:#{GO_FULL_VERSION} gocd-server:gocd-server-for-bc-test")
+  sh ("docker tag gocdexperimental/gocd-agent-alpine-3.9:#{GO_FULL_VERSION} gocd-agent:gocd-agent-for-bc-test")
 end
 
 desc 'docker compose'

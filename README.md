@@ -11,9 +11,10 @@
 
 **Setup**
 
-1. Checkout https://github.com/gocd/docker-gocd-server and https://github.com/gocd/docker-gocd-agent in same workspace as this repository
-2. Run `cd  gocd-business-continuity-test`
-3. Run `bundle exec rake`
+1. Run `cd gocd-business-continuity-test`
+2. Copy postgres and business continuity addons to be tested to `dependencis/go-primary/addons` and `dependencies/go-secondary/addons` folders
+3. Run `bundle exec rake GO_VERSION='X.x.x'`
+Note: Addons used for test should be compatibile with the `GO_VERSION` set
 
 ## License
 
