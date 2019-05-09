@@ -80,6 +80,11 @@ secondarygo:
 agent1:
   image: gocd-agent-centos-7:gocd-agent-for-bc-test
 
+  command: ["./gostartup/init.sh"]
+
+  volumes:
+    - ./dependencies/go-agent:/gostartup
+
   environment:
-    - GO_SERVER_URL=https://172.17.17.17:8154/go
+    - GO_SERVER_URL=https://primarygo:8154/go
     - AGENT_AUTO_REGISTER_KEY=123456789abcdef
