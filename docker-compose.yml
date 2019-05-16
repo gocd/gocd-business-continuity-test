@@ -83,10 +83,10 @@ agent1:
   links:
     - primarygo:primarygo
 
-  command: ["./gostartup/init.sh"]
+  command: ["./godata/init.sh"]
 
   volumes:
-    - ./dependencies/go-agent:/gostartup
+    - ./dependencies/go-agent:/godata
 
   environment:
     - GO_SERVER_URL=https://primarygo:8154/go
