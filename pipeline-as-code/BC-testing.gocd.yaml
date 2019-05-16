@@ -29,7 +29,7 @@ pipelines:
             timeout: 0
             artifacts:
             - build:
-                source: dependencies/go-agent
+                source: '#{bc_wrk_dir}/dependencies/go-agent'
                 destination: go-agent
             environment_variables:
               GO_VERSION: 19.4.0
