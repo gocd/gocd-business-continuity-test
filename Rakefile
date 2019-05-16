@@ -77,6 +77,7 @@ desc 'docker compose'
 task :compose do
   sh('chmod 777 dependencies/go-primary/init.sh')
   sh('chmod 777 dependencies/go-secondary/init.sh')
+  sh('chmod 777 dependencies/go-agent/init.sh')
   sh('docker-compose up -d')
 end
 
