@@ -1,0 +1,112 @@
+format_version: 3
+pipelines:
+  BC-testing:
+    group: enterprise
+    label_template: ${COUNT}
+    lock_behavior: none
+    secure_variables:
+      TOKEN: AES:463pQia9Ml+OCjEgyJS68w==:WbR7WepDnIdS4gR4KSO1bi+9ZVEc41pD/oBtZzcjo5g=
+    materials:
+      bc-test:
+        git: https://git.gocd.io/git/gocd/gocd-business-continuity-test
+        shallow_clone: false
+        auto_update: true
+        branch: master
+        destination: '#{bc_wrk_dir}'
+      upload:
+        pipeline: upload-addons
+        stage: upload-addons
+        name: upload
+    stages:
+    - defaultStage:
+        fetch_materials: true
+        keep_artifacts: false
+        clean_workspace: false
+        approval:
+          type: success
+        jobs:
+          defaultJob:
+            timeout: 0
+            artifacts:
+            - build:
+                source: dependencies/go-agent
+                destination: go-agent
+            environment_variables:
+              GO_VERSION: 19.4.0
+            elastic_profile_id: ecs-gocd-dev-build-dind-docker-compose
+            tasks:
+            - fetch:
+                is_file: false
+                source: postgresql-addon
+                destination: '#{bc_wrk_dir}'
+                pipeline: go-addon-build/upload-addons
+                stage: build-addons
+                job: postgresql
+                artifact_origin: gocd
+                run_if: passed
+            - fetch:
+                is_file: false
+                source: business-continuity-addon
+                destination: '#{bc_wrk_dir}'
+                pipeline: go-addon-build/upload-addons
+                stage: build-addons
+                job: business-continuity
+                artifact_origin: gocd
+                run_if: passed
+            - exec:
+                arguments:
+                - -rf
+                - dependencies/addons/*.jar
+                command: rm
+                working_directory: '#{bc_wrk_dir}'
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - cp business-continuity-addon/*.jar dependencies/go-primary/addons;
+                  cp postgresql-addon/*.jar dependencies/go-primary/addons
+                command: /bin/bash
+                working_directory: '#{bc_wrk_dir}'
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - cp business-continuity-addon/*.jar dependencies/go-secondary/addons;
+                  cp postgresql-addon/*.jar dependencies/go-secondary/addons
+                command: /bin/bash
+                working_directory: '#{bc_wrk_dir}'
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - bundle install --path=vendor/bundle
+                command: /bin/bash
+                working_directory: '#{bc_wrk_dir}'
+                run_if: passed
+            - exec:
+                on_cancel:
+                  exec:
+                    arguments:
+                    - -c
+                    - bundle exec rake clean
+                    command: /bin/bash
+                    working_directory: '#{bc_wrk_dir}'
+                    run_if: passed
+                arguments:
+                - -c
+                - bundle exec rake
+                command: /bin/bash
+                working_directory: '#{bc_wrk_dir}'
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - sudo rm -rf dependencies/go-primary/* ; sudo rm -rf dependencies/go-secondary/*
+                command: /bin/bash
+                working_directory: '#{bc_wrk_dir}'
+                run_if: any
+    parameters:
+      bc_wrk_dir: bc-test
+      docker_wrk_dir: gocd-docker
+      server_wrk_dir: docker-gocd-server
+      agent_wrk_dir: docker-gocd-agent
