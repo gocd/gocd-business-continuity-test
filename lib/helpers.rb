@@ -64,6 +64,8 @@ def check_pipeline_status
           puts 'Pipeline completed with success'
           break
         end
+
+        p "Pipeline status #{status}"
       end
     end
   rescue Timeout::Error => e
