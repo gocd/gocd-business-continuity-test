@@ -51,9 +51,9 @@ def check_pipeline_status
             method: :GET,
             user: 'admin',
             password: 'badger',
-            :headers => {accept: 'application/vnd.go.cd.v2+json'}
+            :headers => {accept: 'application/vnd.go.cd.v3+json'}
         )
-        
+
         runs = JSON.parse(response.body)
         begin
           status = runs["_embedded"]["pipelines"][0]["_embedded"]["instances"][0]["_embedded"]["stages"][0]["status"]
