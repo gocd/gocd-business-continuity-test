@@ -32,7 +32,7 @@ pipelines:
                 source: '#{bc_wrk_dir}/dependencies/go-agent'
                 destination: go-agent
             environment_variables:
-              GO_VERSION: 19.5.0
+              GO_VERSION: 19.6.0
             elastic_profile_id: ecs-gocd-dev-build-dind-docker-compose
             tasks:
             - fetch:
