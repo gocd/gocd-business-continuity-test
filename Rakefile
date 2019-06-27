@@ -60,7 +60,7 @@ task :clean_godata_dir do
   end
 end
 
-desc 'create server and agent image'
+desc 'Pull the experimental server and agent image to be tested and tag it for bc test'
 task :init do
   json = JSON.parse(open(RELEASES_JSON_URL).read)
   info json

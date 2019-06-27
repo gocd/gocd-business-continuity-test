@@ -23,10 +23,12 @@ primarygo:
   links:
     - primarydb:db
 
+  user: "root:root"
+
   command: ["./godata/init.sh"]
 
   environment:
-    - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+    - GOCD_SERVER_JVM_OPTS=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
 
   volumes:
     - ./dependencies/postgresqldb.properties:/godata/config/postgresqldb.properties
@@ -59,10 +61,12 @@ secondarygo:
     - secondarydb:db
     - primarygo:primarygo
 
+  user: "root:root"
+
   command: ["./godata/init.sh"]
 
   environment:
-    - GO_SERVER_SYSTEM_PROPERTIES=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Dgo.server.mode=standby -Dbc.primary.url=https://primarygo:8154
+    - GOCD_SERVER_JVM_OPTS=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Dgo.server.mode=standby -Dbc.primary.url=https://primarygo:8154
 
   volumes:
     - ./dependencies/postgresqldb.properties:/godata/config/postgresqldb.properties
