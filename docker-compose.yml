@@ -23,6 +23,8 @@ primarygo:
   links:
     - primarydb:db
 
+  user: "root:root"
+
   command: ["./godata/init.sh"]
 
   environment:
@@ -58,6 +60,8 @@ secondarygo:
   links:
     - secondarydb:db
     - primarygo:primarygo
+
+  user: "root:root"
 
   command: ["./godata/init.sh"]
 
