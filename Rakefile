@@ -187,5 +187,7 @@ task :default do
   ensure
     Rake::Task['clean'].reenable
     Rake::Task['clean'].invoke
+    #Rake::Task['clean'].reenable
+    #Rake::Task['clean'].invoke
   end
 end
