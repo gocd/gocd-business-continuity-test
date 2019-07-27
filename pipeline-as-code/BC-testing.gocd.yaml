@@ -31,6 +31,12 @@ pipelines:
             - build:
                 source: '#{bc_wrk_dir}/dependencies/go-agent'
                 destination: go-agent
+            - build:
+                source: '#{bc_wrk_dir}/dependencies/go-primary'
+                destination: go-primary
+            - build:
+                source: '#{bc_wrk_dir}/dependencies/go-secondary'
+                destination: go-secondary
             environment_variables:
               GO_VERSION: 19.7.0
             elastic_profile_id: ecs-gocd-dev-build-dind-docker-compose
@@ -84,27 +90,12 @@ pipelines:
                 working_directory: '#{bc_wrk_dir}'
                 run_if: passed
             - exec:
-                on_cancel:
-                  exec:
-                    arguments:
-                    - -c
-                    - bundle exec rake clean
-                    command: /bin/bash
-                    working_directory: '#{bc_wrk_dir}'
-                    run_if: passed
                 arguments:
                 - -c
                 - bundle exec rake
                 command: /bin/bash
                 working_directory: '#{bc_wrk_dir}'
                 run_if: passed
-            - exec:
-                arguments:
-                - -c
-                - sudo rm -rf dependencies/go-primary/* ; sudo rm -rf dependencies/go-secondary/*
-                command: /bin/bash
-                working_directory: '#{bc_wrk_dir}'
-                run_if: any
     parameters:
       bc_wrk_dir: bc-test
       docker_wrk_dir: gocd-docker
