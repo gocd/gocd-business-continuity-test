@@ -185,7 +185,7 @@ task :default do
   rescue StandardError => e
     raise "BC testing failed. Error message #{e.message}"
   ensure
-    Rake::Task['clean'].reenable
-    Rake::Task['clean'].invoke
+    #Rake::Task['clean'].reenable
+    #Rake::Task['clean'].invoke
   end
 end
