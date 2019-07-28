@@ -102,7 +102,7 @@ pipelines:
                 - sleep 3600
                 command: /bin/bash
                 working_directory: '#{bc_wrk_dir}'
-                run_if: passed
+                run_if: any
     parameters:
       bc_wrk_dir: bc-test
       docker_wrk_dir: gocd-docker
