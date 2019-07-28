@@ -30,12 +30,12 @@ while [ "$count" -lt "30" -a "$(nc -zv "${DB}" 5432 2>/dev/null; echo $?)" -ne "
   count=$((count + 1))
 done
 
-mv -f '/godata/business-continuity-token' '/godata/config/business-continuity-token'
+cp -f '/godata/business-continuity-token' '/godata/config/business-continuity-token'
 
 touch /etc/rc.local
 
 echo "Assigning this Go Server machine the virtual IP: 172.17.17.17"
-java -Dinterface=eth0:0 -Dip=172.17.17.17 -Dnetmask=255.255.0.0 -jar /godata/addons/go-business-continuity-*.jar assign
+/gocd-jre/bin/java -Dinterface=eth0:0 -Dip=172.17.17.17 -Dnetmask=255.255.0.0 -jar /godata/addons/go-business-continuity-*.jar assign
 RES=$?
 if [ $RES -ne 0 ]; then
   echo "Failed to assign Virtual IP to primary server"

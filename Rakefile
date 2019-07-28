@@ -52,7 +52,7 @@ task :clean do
 end
 
 task :clean_godata_dir do
-  %w[go-primary go-secondary].each do |server_dir|
+  %w[go-primary go-secondary go-agent].each do |server_dir|
     %w[artifacts config db logs plugins].each do |dir|
       dir_name = "#{Dir.pwd}/dependencies/#{server_dir}/#{dir}"
       FileUtils.rm_rf(dir_name) if File.exist?(dir_name)
@@ -67,10 +67,10 @@ task :init do
   version, release = json.select { |x| x['go_version'] == GO_VERSION }.sort_by { |a| a['go_build_number'] }.last['go_full_version'].split('-')
   GO_FULL_VERSION = "#{version}-#{release}".freeze
   info "Pulling GoCD server and agent image for version #{GO_FULL_VERSION}"
-  sh ("docker pull gocdexperimental/gocd-server:v#{GO_FULL_VERSION}")
-  sh ("docker pull gocdexperimental/gocd-agent-alpine-3.9:v#{GO_FULL_VERSION}")
-  sh ("docker tag gocdexperimental/gocd-server:v#{GO_FULL_VERSION} gocd-server:gocd-server-for-bc-test")
-  sh ("docker tag gocdexperimental/gocd-agent-alpine-3.9:v#{GO_FULL_VERSION} gocd-agent:gocd-agent-for-bc-test")
+  sh "docker pull gocdexperimental/gocd-server-centos-7:v#{GO_FULL_VERSION}"
+  sh "docker pull gocdexperimental/gocd-agent-alpine-3.9:v#{GO_FULL_VERSION}"
+  sh "docker tag gocdexperimental/gocd-server-centos-7:v#{GO_FULL_VERSION} gocd-server:gocd-server-for-bc-test"
+  sh "docker tag gocdexperimental/gocd-agent-alpine-3.9:v#{GO_FULL_VERSION} gocd-agent:gocd-agent-for-bc-test"
 end
 
 desc 'docker compose'
@@ -114,7 +114,6 @@ end
 
 desc 'setup oAuth client on primary server'
 task :setup_oauth_client do
-
   dashboard_json = RestClient::Request.execute(
     method: :GET,
     url: secondary_url('/add-on/business-continuity/admin/dashboard.json', false),
@@ -185,7 +184,7 @@ task :default do
   rescue StandardError => e
     raise "BC testing failed. Error message #{e.message}"
   ensure
-    #Rake::Task['clean'].reenable
-    #Rake::Task['clean'].invoke
+    # Rake::Task['clean'].reenable
+    # Rake::Task['clean'].invoke
   end
 end
