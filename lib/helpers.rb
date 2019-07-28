@@ -75,7 +75,7 @@ end
 
 
 def wait_to_start(url)
-  wait_till_event_occurs_or_bomb 300, "Connect to : #{url}" do
+  wait_till_event_occurs_or_bomb 600, "Connect to : #{url}" do
     begin
       break if running?(url)
     rescue Errno::ECONNREFUSED
