@@ -63,7 +63,6 @@ end
 desc 'Pull the experimental server and agent image to be tested and tag it for bc test'
 task :init do
   json = JSON.parse(open(RELEASES_JSON_URL).read)
-  info json
   version, release = json.select { |x| x['go_version'] == GO_VERSION }.sort_by { |a| a['go_build_number'] }.last['go_full_version'].split('-')
   GO_FULL_VERSION = "#{version}-#{release}".freeze
   info "Pulling GoCD server and agent image for version #{GO_FULL_VERSION}"
@@ -184,7 +183,7 @@ task :default do
   rescue StandardError => e
     raise "BC testing failed. Error message #{e.message}"
   ensure
-    # Rake::Task['clean'].reenable
-    # Rake::Task['clean'].invoke
+    Rake::Task['clean'].reenable
+    Rake::Task['clean'].invoke
   end
 end
