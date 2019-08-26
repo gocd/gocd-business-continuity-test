@@ -51,7 +51,7 @@ def check_pipeline_status
             method: :GET,
             user: 'admin',
             password: 'badger',
-            :headers => {accept: 'application/vnd.go.cd.v3+json'}
+            :headers => {accept: 'application/vnd.go.cd+json'}
         )
 
         runs = JSON.parse(response.body)
