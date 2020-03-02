@@ -66,7 +66,7 @@ secondarygo:
   command: ["./godata/init.sh"]
 
   environment:
-    - GOCD_SERVER_JVM_OPTS=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Dgo.server.mode=standby -Dbc.primary.url=https://primarygo:8154
+    - GOCD_SERVER_JVM_OPTS=-Dgo.database.provider=com.thoughtworks.go.postgresql.PostgresqlDatabase -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Dgo.server.mode=standby -Dbc.primary.url=http://primarygo:8153
 
   volumes:
     - ./dependencies/postgresqldb.properties:/godata/config/postgresqldb.properties
@@ -93,5 +93,5 @@ agent1:
     - ./dependencies/go-agent:/godata
 
   environment:
-    - GO_SERVER_URL=https://primarygo:8154/go
+    - GO_SERVER_URL=http://primarygo:8153/go
     - AGENT_AUTO_REGISTER_KEY=123456789abcdef
