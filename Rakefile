@@ -66,9 +66,9 @@ task :init do
   version, release = json.select { |x| x['go_version'] == GO_VERSION }.sort_by { |a| a['go_build_number'].to_i }.last['go_full_version'].split('-')
   GO_FULL_VERSION = "#{version}-#{release}".freeze
   info "Pulling GoCD server and agent image for version #{GO_FULL_VERSION}"
-  sh "docker pull gocdexperimental/gocd-server-centos-7:v#{GO_FULL_VERSION}"
+  sh "docker pull gocdexperimental/gocd-server-centos-8:v#{GO_FULL_VERSION}"
   sh "docker pull gocdexperimental/gocd-agent-alpine-3.9:v#{GO_FULL_VERSION}"
-  sh "docker tag gocdexperimental/gocd-server-centos-7:v#{GO_FULL_VERSION} gocd-server:gocd-server-for-bc-test"
+  sh "docker tag gocdexperimental/gocd-server-centos-8:v#{GO_FULL_VERSION} gocd-server:gocd-server-for-bc-test"
   sh "docker tag gocdexperimental/gocd-agent-alpine-3.9:v#{GO_FULL_VERSION} gocd-agent:gocd-agent-for-bc-test"
 end
 
