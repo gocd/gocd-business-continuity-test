@@ -39,7 +39,7 @@ end
 
 def sync_successful? (response)
   p "Response received from the server - #{response}"
-  (response[:primaryServerDetails].select {|key, value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 6) && (response[:syncErrors].empty?)
+  (response[:primaryServerDetails].select {|key, value| value[:md5] == response[:standbyServerDetails][key] if value.is_a?(Hash)}.size == 3) && (response[:syncErrors].empty?)
 end
 
 def check_pipeline_status
