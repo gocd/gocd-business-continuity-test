@@ -52,6 +52,3 @@ DEPENDENCIES
   rake
   rest-client
   test-unit
-
-BUNDLED WITH
-   1.14.6
