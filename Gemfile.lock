@@ -11,7 +11,7 @@ GEM
     fileutils (1.1.0)
     http-cookie (1.0.2)
       domain_name (~> 0.5)
-    json (2.0.2)
+    json (2.3.0)
     method_source (0.8.2)
     mime-types (3.1)
       mime-types-data (~> 3.2015)
